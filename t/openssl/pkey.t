@@ -880,3 +880,30 @@ A4D1CBD5C3FD34126765A442EFB99905F8104DD258AC507FD6406CFF14266D31266FEA1E5C41564B
 ""
 --- no_error_log
 [error]
+
+=== TEST 30: Loads encrypted pkey with passphrase without specifying the type
+--- http_config eval: $::HttpConfig
+--- config
+    location =/t {
+        content_by_lua_block {
+            local f = io.open("t/fixtures/ec_key_encrypted.pem"):read("*a")
+            local privkey, err = require("resty.openssl.pkey").new(f, {
+                passphrase = "wrongpasswrod",
+            })
+            ngx.say(err)
+            local privkey = myassert(require("resty.openssl.pkey").new(f, {
+                passphrase = "123456",
+            }))
+
+            ngx.say("ok")
+        }
+    }
+--- request
+    GET /t
+--- response_body_like eval
+"pkey.new.+(?:bad decrypt|failed)
+ok
+"
+--- no_error_log
+[error]
+
